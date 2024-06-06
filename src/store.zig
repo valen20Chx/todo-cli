@@ -75,6 +75,9 @@ pub fn readTasks(allocator: std.mem.Allocator) !std.ArrayList(Task) {
     var tasks = std.ArrayList(Task).init(allocator);
 
     while (linesSplitSequence.next()) |line| {
+        if (line.len == 0) {
+            continue;
+        }
         var fieldsSplitSequence = std.mem.splitSequence(u8, line, ";");
 
         const indexStr = fieldsSplitSequence.next() orelse return TodoError.Unexpected;
