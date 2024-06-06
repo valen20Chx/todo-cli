@@ -1,11 +1,7 @@
 const std = @import("std");
 const TodoError = @import("./error.zig").TodoError;
 
-pub const Task = struct {
-    desc: []u8,
-    index: u32,
-    deadline: ?u32,
-};
+pub const Task = struct { desc: []u8, index: u32, deadline: ?u32, done: bool };
 
 const Store = struct {
     version: u8,
@@ -84,14 +80,23 @@ pub fn readTasks(allocator: std.mem.Allocator) !std.ArrayList(Task) {
         const indexStr = fieldsSplitSequence.next() orelse return TodoError.Unexpected;
         const index = try std.fmt.parseInt(u32, indexStr, 10);
         const desc = fieldsSplitSequence.next() orelse return TodoError.Unexpected;
-        var deadline: ?u32 = undefined;
-        if (fieldsSplitSequence.next()) |deadlineStr| {
-            deadline = try std.fmt.parseInt(u8, deadlineStr, 10);
-        }
+        const deadlineStr = fieldsSplitSequence.next();
+        const deadline = if (deadlineStr.?.len > 0)
+            try std.fmt.parseInt(u32, deadlineStr orelse unreachable, 10)
+        else
+            null;
+        const doneStr = fieldsSplitSequence.next();
+        const done = if (doneStr.?.len > 0) switch (try std.fmt.parseInt(u8, doneStr orelse unreachable, 10)) {
+            0 => false,
+            1 => true,
+            else => return TodoError.Unexpected,
+        } else {
+            return TodoError.Unexpected;
+        };
 
         const mutableDesc = try allocator.dupe(u8, desc);
 
-        try tasks.append(Task{ .index = index, .desc = mutableDesc, .deadline = deadline });
+        try tasks.append(Task{ .index = index, .desc = mutableDesc, .deadline = deadline, .done = done });
     }
 
     return tasks;
@@ -107,8 +112,16 @@ pub fn writeTasks(tasks: []Task) !void {
     const allocator = arena.allocator();
 
     for (tasks, 0..) |task, index| {
-        const content = try std.fmt.allocPrint(allocator, "{};{s};{}", .{ task.index, task.desc, task.deadline orelse 0 });
+        const deadlineStr: []u8 = if (task.deadline != null)
+            try std.fmt.allocPrint(allocator, "{}", .{task.deadline orelse unreachable})
+        else
+            "";
+
+        const doneStr = if (task.done) "1" else "0";
+
+        const content = try std.fmt.allocPrint(allocator, "{};{s};{s};{s}", .{ task.index, task.desc, deadlineStr, doneStr });
         _ = try storeFile.write(content);
+
         if (index < tasks.len - 1) {
             _ = try storeFile.write("\n");
         }

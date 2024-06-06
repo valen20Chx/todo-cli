@@ -31,7 +31,7 @@ pub fn execAdd(argsIter: *Iter) TodoError!void {
     const next_op = argsIter.next();
 
     if (next_op) |next| {
-        tasks.append(Task{ .desc = next, .index = @intCast(tasks.items.len), .deadline = 0 }) catch {
+        tasks.append(Task{ .desc = next, .index = @intCast(tasks.items.len), .deadline = null, .done = false }) catch {
             return TodoError.Unexpected;
         };
 
