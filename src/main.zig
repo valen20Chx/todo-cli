@@ -47,27 +47,10 @@ fn exec() TodoError!void {
 
     const mode = try parseMode(&argsIter);
 
-    var tasks = std.ArrayList(Task).init(allocator);
-    defer tasks.deinit();
-
-    // const storage_tasks = store.readTasks(allocator) catch |e| {
-    //     std.debug.print("Error: Could not read saved tasks\n", .{});
-    //     std.debug.print("{}\n", .{e});
-    //     return;
-    // };
-    // tasks.appendSlice(storage_tasks.items) catch {
-    //     return TodoError.Unexpected;
-    // };
-
     switch (mode) {
         Mode.reset => try Reset.execReset(),
-        Mode.add => try Add.execAdd(&argsIter, &tasks),
+        Mode.add => try Add.execAdd(&argsIter),
     }
-
-    store.writeTasks(tasks.items) catch |e| {
-        std.debug.print("Error: Could not save tasks\n", .{});
-        std.debug.print("{}\n", .{e});
-    };
 }
 
 pub fn main() !void {
