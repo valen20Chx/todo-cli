@@ -2,7 +2,6 @@
 
 WIP
 
-## TODO :
 ### Add a task:
 `todo add <description> [options]`
 
@@ -11,6 +10,7 @@ Descriptions are unique.
 #### options
 - `-t <deadline>` sets the deadline.
 
+## TODO :
 ### List tasks:
  `todo [options]`
  
