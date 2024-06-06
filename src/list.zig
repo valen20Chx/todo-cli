@@ -9,6 +9,10 @@ pub const listUsage =
     \\
 ;
 
+pub fn printTask(task: Task) void {
+    std.debug.print("{} [{s}]: {s}\n", .{ task.index, if (task.done) "X" else " ", task.desc });
+}
+
 pub fn execList() TodoError!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -24,6 +28,6 @@ pub fn execList() TodoError!void {
     };
 
     for (storage_tasks.items) |task| {
-        std.debug.print("{} [{s}]: {s}\n", .{ task.index, if (task.done) "X" else " ", task.desc });
+        printTask(task);
     }
 }
