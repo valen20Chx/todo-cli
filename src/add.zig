@@ -38,11 +38,9 @@ pub fn execAdd(argsIter: *Iter) TodoError!void {
         std.debug.print("Task added: '{s}'\n", .{next});
         std.debug.print("Total tasks: {}\n", .{tasks.items.len});
 
-        store.writeTasks(tasks.items) catch |e| {
-            std.debug.print("Error: Could not save tasks\n", .{});
-            std.debug.print("{}\n", .{e});
+        store.writeTasks(tasks.items) catch {
+            return TodoError.Unexpected;
         };
-
         return;
     }
 

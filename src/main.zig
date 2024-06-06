@@ -5,6 +5,7 @@ const Iter = iter.Iter;
 
 const Add = @import("./add.zig");
 const Reset = @import("./reset.zig");
+const List = @import("./list.zig");
 
 const todoError = @import("./error.zig");
 const TodoError = todoError.TodoError;
@@ -15,6 +16,7 @@ const Task = store.Task;
 const Mode = enum {
     reset,
     add,
+    list,
 };
 
 fn parseMode(argsIter: *Iter) TodoError!Mode {
@@ -28,9 +30,13 @@ fn parseMode(argsIter: *Iter) TodoError!Mode {
         if (std.mem.eql(u8, next, "add")) {
             return Mode.add;
         }
+
+        if (std.mem.eql(u8, next, "list")) {
+            return Mode.list;
+        }
     }
 
-    return TodoError.InvalidMode;
+    return Mode.list;
 }
 
 fn exec() TodoError!void {
@@ -50,6 +56,7 @@ fn exec() TodoError!void {
     switch (mode) {
         Mode.reset => try Reset.execReset(),
         Mode.add => try Add.execAdd(&argsIter),
+        Mode.list => try List.execList(),
     }
 }
 
