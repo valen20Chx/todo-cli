@@ -1,24 +1,89 @@
 const std = @import("std");
 
-pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+const iter = @import("./iter.zig");
+const Iter = iter.Iter;
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+const Add = @import("./add.zig");
+const Reset = @import("./reset.zig");
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+const todoError = @import("./error.zig");
+const TodoError = todoError.TodoError;
 
-    try bw.flush(); // don't forget to flush!
+const store = @import("./store.zig");
+const Task = store.Task;
+
+const Mode = enum {
+    reset,
+    add,
+};
+
+fn parseMode(argsIter: *Iter) TodoError!Mode {
+    const next_op = argsIter.next();
+
+    if (next_op) |next| {
+        if (std.mem.eql(u8, next, "reset")) {
+            return Mode.reset;
+        }
+
+        if (std.mem.eql(u8, next, "add")) {
+            return Mode.add;
+        }
+    }
+
+    return TodoError.InvalidMode;
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+fn exec() TodoError!void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    const args = std.process.argsAlloc(allocator) catch {
+        return TodoError.Unexpected;
+    };
+    defer std.process.argsFree(allocator, args);
+
+    var argsIter = Iter.init(args);
+
+    const mode = try parseMode(&argsIter);
+
+    var tasks = std.ArrayList(Task).init(allocator);
+    defer tasks.deinit();
+
+    // const storage_tasks = store.readTasks(allocator) catch |e| {
+    //     std.debug.print("Error: Could not read saved tasks\n", .{});
+    //     std.debug.print("{}\n", .{e});
+    //     return;
+    // };
+    // tasks.appendSlice(storage_tasks.items) catch {
+    //     return TodoError.Unexpected;
+    // };
+
+    switch (mode) {
+        Mode.reset => try Reset.execReset(),
+        Mode.add => try Add.execAdd(&argsIter, &tasks),
+    }
+
+    store.writeTasks(tasks.items) catch |e| {
+        std.debug.print("Error: Could not save tasks\n", .{});
+        std.debug.print("{}\n", .{e});
+    };
+}
+
+pub fn main() !void {
+    exec() catch |err| {
+        switch (err) {
+            TodoError.InvalidMode => {
+                std.debug.print("This mode is not implemented\n", .{});
+                std.debug.print(Add.addUsage, .{});
+            },
+            TodoError.AddMode => {
+                std.debug.print("Wrong arguments passed to the add mode\n", .{});
+                std.debug.print(Add.addUsage, .{});
+            },
+            TodoError.Unexpected => {
+                std.debug.print("Unexpected error\n", .{});
+            },
+        }
+    };
 }
